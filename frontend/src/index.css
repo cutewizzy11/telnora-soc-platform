@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-telnora-dark text-slate-100;
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+}
+
+.severity-critical { @apply bg-red-500/20 text-red-400 border border-red-500/40; }
+.severity-high { @apply bg-orange-500/20 text-orange-400 border border-orange-500/40; }
+.severity-medium { @apply bg-yellow-500/20 text-yellow-400 border border-yellow-500/40; }
+.severity-low { @apply bg-blue-500/20 text-blue-400 border border-blue-500/40; }
+.severity-info { @apply bg-slate-500/20 text-slate-300 border border-slate-500/40; }
+
+.card {
+  @apply bg-telnora-panel border border-slate-800 rounded-xl p-4 shadow-sm;
+}
