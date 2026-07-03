@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -15,10 +15,12 @@ router = APIRouter(prefix="/api/alerts", tags=["alerts"])
 
 @router.get("", response_model=list[AlertOut])
 def list_alerts(
+    response: Response,
     status: AlertStatus | None = None,
     severity: Severity | None = None,
     q: str | None = Query(None, description="Search alert titles"),
-    limit: int = 200,
+    limit: int = Query(200, ge=1, le=500, description="Max number of alerts to return"),
+    offset: int = Query(0, ge=0, description="Number of alerts to skip"),
     db: Session = Depends(get_db),
     _: User = Depends(get_current_user),
 ):
@@ -29,7 +31,11 @@ def list_alerts(
         query = query.filter(Alert.severity == severity)
     if q:
         query = query.filter(Alert.title.ilike(f"%{q}%"))
-    return query.order_by(Alert.created_at.desc()).limit(limit).all()
+
+    total = query.count()
+    response.headers["X-Total-Count"] = str(total)
+
+    return query.order_by(Alert.created_at.desc()).offset(offset).limit(limit).all()
 
 
 @router.get("/{alert_id}", response_model=AlertOut)

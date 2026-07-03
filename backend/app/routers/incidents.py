@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -16,14 +16,21 @@ router = APIRouter(prefix="/api/incidents", tags=["incidents"])
 
 @router.get("", response_model=list[IncidentOut])
 def list_incidents(
+    response: Response,
     status: IncidentStatus | None = None,
+    limit: int = Query(200, ge=1, le=500, description="Max number of incidents to return"),
+    offset: int = Query(0, ge=0, description="Number of incidents to skip"),
     db: Session = Depends(get_db),
     _: User = Depends(get_current_user),
 ):
     query = db.query(Incident)
     if status:
         query = query.filter(Incident.status == status)
-    return query.order_by(Incident.created_at.desc()).all()
+
+    total = query.count()
+    response.headers["X-Total-Count"] = str(total)
+
+    return query.order_by(Incident.created_at.desc()).offset(offset).limit(limit).all()
 
 
 @router.get("/{incident_id}", response_model=IncidentOut)

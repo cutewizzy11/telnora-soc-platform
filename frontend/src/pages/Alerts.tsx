@@ -17,6 +17,7 @@ interface Alert {
 }
 
 const STATUS_OPTIONS = ["new", "triaged", "escalated", "false_positive", "closed"];
+const PAGE_SIZE = 25;
 
 export default function Alerts() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
@@ -24,22 +25,31 @@ export default function Alerts() {
   const [statusFilter, setStatusFilter] = useState("");
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
+  const [total, setTotal] = useState(0);
 
-  const load = async () => {
+  const load = async (targetPage = page) => {
     setLoading(true);
-    const params: Record<string, string> = {};
+    const params: Record<string, string | number> = {
+      limit: PAGE_SIZE,
+      offset: targetPage * PAGE_SIZE,
+    };
     if (severityFilter) params.severity = severityFilter;
     if (statusFilter) params.status = statusFilter;
     if (q) params.q = q;
     const resp = await client.get("/alerts", { params });
     setAlerts(resp.data);
+    setTotal(Number(resp.headers["x-total-count"] ?? resp.data.length));
+    setPage(targetPage);
     setLoading(false);
   };
 
   useEffect(() => {
-    load();
+    load(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [severityFilter, statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const updateStatus = async (id: string, status: string) => {
     await client.patch(`/alerts/${id}`, { status });
@@ -49,6 +59,11 @@ export default function Alerts() {
   const runCorrelation = async () => {
     await client.post("/alerts/correlate");
     load();
+  };
+
+  const goToPage = (target: number) => {
+    if (target < 0 || target >= totalPages) return;
+    load(target);
   };
 
   return (
@@ -70,7 +85,7 @@ export default function Alerts() {
         <input
           placeholder="Search title..."
           value={q}
-          onKeyDown={(e) => e.key === "Enter" && load()}
+          onKeyDown={(e) => e.key === "Enter" && load(0)}
           onChange={(e) => setQ(e.target.value)}
           className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-telnora-accent"
         />
@@ -150,6 +165,33 @@ export default function Alerts() {
             </tbody>
           </table>
         )}
+      </div>
+
+      <div className="flex items-center justify-between text-xs text-slate-400">
+        <span>
+          {total === 0
+            ? "No alerts"
+            : `Showing ${page * PAGE_SIZE + 1}-${Math.min(total, page * PAGE_SIZE + alerts.length)} of ${total}`}
+        </span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => goToPage(page - 1)}
+            disabled={page === 0 || loading}
+            className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed hover:border-telnora-accent/60"
+          >
+            Previous
+          </button>
+          <span>
+            Page {page + 1} of {totalPages}
+          </span>
+          <button
+            onClick={() => goToPage(page + 1)}
+            disabled={page + 1 >= totalPages || loading}
+            className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed hover:border-telnora-accent/60"
+          >
+            Next
+          </button>
+        </div>
       </div>
     </div>
   );

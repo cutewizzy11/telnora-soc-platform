@@ -49,6 +49,31 @@ def test_analytics_summary_endpoint(client, auth_headers):
     assert body["alerts_by_severity"]["critical"] == 1
 
 
+def test_list_alerts_pagination(client, auth_headers):
+    for i in range(5):
+        client.post(
+            "/api/alerts",
+            json={"title": f"Alert {i}", "source": "EDR", "severity": "low"},
+            headers=auth_headers,
+        )
+
+    first_page = client.get("/api/alerts", params={"limit": 2, "offset": 0}, headers=auth_headers)
+    assert first_page.status_code == 200
+    assert len(first_page.json()) == 2
+    assert first_page.headers["x-total-count"] == "5"
+
+    second_page = client.get("/api/alerts", params={"limit": 2, "offset": 2}, headers=auth_headers)
+    assert len(second_page.json()) == 2
+    assert second_page.headers["x-total-count"] == "5"
+
+    first_ids = {a["id"] for a in first_page.json()}
+    second_ids = {a["id"] for a in second_page.json()}
+    assert first_ids.isdisjoint(second_ids)
+
+    last_page = client.get("/api/alerts", params={"limit": 2, "offset": 4}, headers=auth_headers)
+    assert len(last_page.json()) == 1
+
+
 def test_viewer_role_cannot_create_alert(client, db_session):
     from app.models.user import User, Role
     from app.core.security import hash_password
