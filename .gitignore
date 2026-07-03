@@ -25,3 +25,8 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# local mount cleanup artifacts (rename-only mount, cannot delete)
+.git_old_broken*/
+.git_ready*/
+.git_incoming*/
