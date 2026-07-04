@@ -10,6 +10,6 @@ passlib[bcrypt]==1.7.4
 python-multipart==0.0.32
 httpx==0.28.1
 python-dotenv==1.2.2
-faker==29.0.0
+faker==40.28.1
 pytest==9.1.1
 pytest-cov==5.0.0
