@@ -3,7 +3,7 @@
 Running list of the next real improvements for the SOC platform. Each item should be picked up one at a time, actually implemented (not stubbed), tested where it makes sense, and checked off in the same commit that lands it.
 
 - [x] Add pagination to `GET /alerts` and `GET /incidents` list endpoints
-- [ ] Add basic rate limiting middleware to public API endpoints
+- [x] Add basic rate limiting middleware to public API endpoints
 - [ ] Add CSV export endpoint for incidents and alerts
 - [ ] Add a dark mode toggle to the frontend
 - [ ] Add a GitHub Actions CI workflow (lint + backend tests on push/PR)
