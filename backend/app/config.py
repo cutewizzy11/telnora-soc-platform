@@ -27,6 +27,11 @@ class Settings(BaseSettings):
     # CORS
     cors_origins: list[str] = ["http://localhost:5173", "http://localhost:3000"]
 
+    # Rate limiting (basic in-memory, per-client-IP fixed window)
+    rate_limit_enabled: bool = True
+    rate_limit_requests: int = 100
+    rate_limit_window_seconds: int = 60
+
     # Threat intel feeds (all optional - features degrade gracefully if unset)
     abuseipdb_api_key: str | None = None
     otx_api_key: str | None = None

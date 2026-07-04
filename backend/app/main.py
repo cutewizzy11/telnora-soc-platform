@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
+from app.core.rate_limit import RateLimitMiddleware
 from app.database import Base, engine
 from app.routers import auth, alerts, incidents, threat_intel, analytics, users, audit
 
@@ -38,6 +39,13 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["X-Total-Count"],
 )
+
+if settings.rate_limit_enabled:
+    app.add_middleware(
+        RateLimitMiddleware,
+        requests=settings.rate_limit_requests,
+        window_seconds=settings.rate_limit_window_seconds,
+    )
 
 app.include_router(auth.router)
 app.include_router(alerts.router)
