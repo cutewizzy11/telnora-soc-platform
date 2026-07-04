@@ -30,3 +30,6 @@ Thumbs.db
 .git_old_broken*/
 .git_ready*/
 .git_incoming*/
+
+# stray artifacts renamed aside on this mount (unlink is blocked, only rename works)
+*.stale.*
