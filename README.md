@@ -28,10 +28,6 @@ Built and maintained by **[Telnora Technologies](https://github.com/Telnora-Tech
 
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for a deeper look at the data model and correlation engine.
 
-## Screenshots
-
-_Add screenshots of the Dashboard, Alerts feed, and Incident board here once you've run the app locally — drop PNGs into `docs/screenshots/` and reference them below._
-
 ## Getting started
 
 ### Option 1: Docker Compose (recommended)
@@ -51,10 +47,6 @@ Then seed demo data (users, simulated alerts, live threat intel if keys are set)
 ```bash
 docker compose exec backend python -m app.scripts.seed
 ```
-
-Log in with `admin@telnora.io` / `ChangeMe123!` (also `lead@`, `analyst@`, `viewer@telnora.io`).
-
-**Change the default passwords and `SECRET_KEY` before deploying anywhere public.**
 
 ### Option 2: Run locally without Docker
 
