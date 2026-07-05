@@ -90,3 +90,47 @@ def test_viewer_role_cannot_create_alert(client, db_session):
 
     resp = client.post("/api/alerts", json={"title": "X", "source": "EDR"}, headers=headers)
     assert resp.status_code == 403
+
+
+def test_export_alerts_csv(client, auth_headers):
+    client.post(
+        "/api/alerts",
+        json={"title": "Suspicious login", "source": "IDS/IPS", "severity": "high", "src_ip": "203.0.113.5"},
+        headers=auth_headers,
+    )
+    client.post(
+        "/api/alerts",
+        json={"title": "Port scan", "source": "Firewall", "severity": "low"},
+        headers=auth_headers,
+    )
+
+    resp = client.get("/api/alerts/export", headers=auth_headers)
+    assert resp.status_code == 200
+    assert resp.headers["content-type"].startswith("text/csv")
+    assert "attachment; filename=" in resp.headers["content-disposition"]
+
+    lines = resp.text.strip().splitlines()
+    assert lines[0].split(",")[:3] == ["id", "title", "description"]
+    assert len(lines) == 3  # header + 2 alerts
+    assert "Suspicious login" in resp.text
+    assert "Port scan" in resp.text
+
+
+def test_export_alerts_csv_respects_filters(client, auth_headers):
+    client.post(
+        "/api/alerts",
+        json={"title": "Critical one", "source": "EDR", "severity": "critical"},
+        headers=auth_headers,
+    )
+    client.post(
+        "/api/alerts",
+        json={"title": "Low one", "source": "EDR", "severity": "low"},
+        headers=auth_headers,
+    )
+
+    resp = client.get("/api/alerts/export", params={"severity": "critical"}, headers=auth_headers)
+    assert resp.status_code == 200
+    lines = resp.text.strip().splitlines()
+    assert len(lines) == 2  # header + 1 matching alert
+    assert "Critical one" in resp.text
+    assert "Low one" not in resp.text

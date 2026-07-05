@@ -1,17 +1,32 @@
+import csv
+import io
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.core.deps import get_current_user, require_roles
-from app.models.incident import Incident, IncidentComment, IncidentStatus
+from app.models.incident import Incident, IncidentComment, IncidentStatus, IncidentSeverity
 from app.models.alert import Alert
 from app.models.user import User, Role
 from app.schemas.incident import IncidentOut, IncidentCreate, IncidentUpdate, CommentCreate, CommentOut
 from app.services.audit_service import log_action
 
 router = APIRouter(prefix="/api/incidents", tags=["incidents"])
+
+CSV_COLUMNS = [
+    "id",
+    "title",
+    "summary",
+    "severity",
+    "status",
+    "assignee_id",
+    "created_at",
+    "updated_at",
+    "resolved_at",
+]
 
 
 @router.get("", response_model=list[IncidentOut])
@@ -31,6 +46,38 @@ def list_incidents(
     response.headers["X-Total-Count"] = str(total)
 
     return query.order_by(Incident.created_at.desc()).offset(offset).limit(limit).all()
+
+
+@router.get("/export", summary="Export incidents as CSV")
+def export_incidents(
+    status: IncidentStatus | None = None,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    query = db.query(Incident)
+    if status:
+        query = query.filter(Incident.status == status)
+
+    incidents = query.order_by(Incident.created_at.desc()).all()
+
+    buffer = io.StringIO()
+    writer = csv.DictWriter(buffer, fieldnames=CSV_COLUMNS)
+    writer.writeheader()
+    for incident in incidents:
+        row = {col: getattr(incident, col) for col in CSV_COLUMNS}
+        if isinstance(row["severity"], IncidentSeverity):
+            row["severity"] = row["severity"].value
+        if isinstance(row["status"], IncidentStatus):
+            row["status"] = row["status"].value
+        writer.writerow(row)
+    buffer.seek(0)
+
+    filename = f"incidents_export_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}.csv"
+    return StreamingResponse(
+        buffer,
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @router.get("/{incident_id}", response_model=IncidentOut)

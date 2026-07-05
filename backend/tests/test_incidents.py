@@ -54,3 +54,48 @@ def test_list_incidents_filters_by_status(client, auth_headers):
     results = resp.json()
     assert len(results) == 1
     assert results[0]["title"] == "Open one"
+
+
+def test_export_incidents_csv(client, auth_headers):
+    client.post(
+        "/api/incidents",
+        json={"title": "Ransomware outbreak", "summary": "Multiple hosts encrypted", "severity": "critical"},
+        headers=auth_headers,
+    )
+    client.post(
+        "/api/incidents",
+        json={"title": "Phishing campaign", "summary": "Bulk phishing emails", "severity": "medium"},
+        headers=auth_headers,
+    )
+
+    resp = client.get("/api/incidents/export", headers=auth_headers)
+    assert resp.status_code == 200
+    assert resp.headers["content-type"].startswith("text/csv")
+    assert "attachment; filename=" in resp.headers["content-disposition"]
+
+    lines = resp.text.strip().splitlines()
+    assert lines[0].split(",")[:3] == ["id", "title", "summary"]
+    assert len(lines) == 3  # header + 2 incidents
+    assert "Ransomware outbreak" in resp.text
+    assert "Phishing campaign" in resp.text
+
+
+def test_export_incidents_csv_respects_status_filter(client, auth_headers):
+    created = client.post(
+        "/api/incidents",
+        json={"title": "Open one", "summary": "x", "severity": "low"},
+        headers=auth_headers,
+    ).json()
+    client.patch(f"/api/incidents/{created['id']}", json={"status": "resolved"}, headers=auth_headers)
+    client.post(
+        "/api/incidents",
+        json={"title": "Still open", "summary": "x", "severity": "low"},
+        headers=auth_headers,
+    )
+
+    resp = client.get("/api/incidents/export", params={"status": "resolved"}, headers=auth_headers)
+    assert resp.status_code == 200
+    lines = resp.text.strip().splitlines()
+    assert len(lines) == 2  # header + 1 matching incident
+    assert "Open one" in resp.text
+    assert "Still open" not in resp.text

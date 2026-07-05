@@ -4,7 +4,7 @@ Running list of the next real improvements for the SOC platform. Each item shoul
 
 - [x] Add pagination to `GET /alerts` and `GET /incidents` list endpoints
 - [x] Add basic rate limiting middleware to public API endpoints
-- [ ] Add CSV export endpoint for incidents and alerts
+- [x] Add CSV export endpoint for incidents and alerts
 - [ ] Add a dark mode toggle to the frontend
 - [ ] Add a GitHub Actions CI workflow (lint + backend tests on push/PR)
 - [ ] Add Docker healthchecks to `docker-compose.yml` services
